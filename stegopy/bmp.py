@@ -10,15 +10,6 @@ import os
 _TAG = "gh$_ik3#"
 
 
-class SmallConteiner(Exception):
-    """Thrown where size of conteiner is not enough."""
-
-    def __init__(self, message):
-        """__init__."""
-        # self.message = message
-        Exception.__init__(self, message)
-
-
 def insert_watermark(imagename, wmname, newimagename):
     """
     Insert watermark in last significant bits of image.
@@ -28,10 +19,10 @@ def insert_watermark(imagename, wmname, newimagename):
     :param newimagename: path to the new image generated
     """
     if not os.path.exists(imagename):
-        raise OSError("File {0} not found".format(imagename))
+        return ("Error", "File {0} not found".format(imagename))
 
     if not os.path.exists(wmname):
-        raise OSError("File {0} not found".format(wmname))
+        return ("Error", "File {0} not found".format(wmname))
 
     wm = _watermark2bin(wmname)
     wm_len = len(wm)
@@ -42,11 +33,12 @@ def insert_watermark(imagename, wmname, newimagename):
     availible_size = x * y / 8
 
     if wm_len > availible_size:
-        raise SmallConteiner(
-            "It's needed {0} bits but only {1} present.".format(
+        return ("Error", "It's needed {0} bits but only {1} present.".format(
                 wm_len, availible_size))
 
     indexes = product(range(x), range(y))
+    mse = 0.0
+    snr = 0.0
 
     for m in wm:
         i = next(indexes)
@@ -60,9 +52,17 @@ def insert_watermark(imagename, wmname, newimagename):
             if "0" == lbit:
                 blue += 1
 
+        mse += (int(lbit) - int(bin(blue)[-1]))**2
+        try:
+            snr += int(lbit) ** 2 / (int(lbit) - int(bin(blue)[-1])) ** 2
+        except ZeroDivisionError:
+            snr += int(lbit) ** 2
+
         pixels[i] = (pixels[i][0], pixels[i][1], blue)
 
     image.save(newimagename)
+
+    return (round(mse / availible_size, 4), round(snr, 4))
 
 
 def extract_watermark(imagename, wmname):
@@ -110,7 +110,7 @@ def extract_watermark(imagename, wmname):
             if tmp == tag:
                 switch = True
 
-    decvector = [int(i, 2) for i in binvector]
+    decvector = [int(j, 2) for j in binvector]
 
     return _create_grayscale(decvector, wmname)
 
@@ -139,8 +139,6 @@ def _create_grayscale(vector, filename):
     x = y = int(len(vector) ** 0.5)
     image = Image.new("L", (x, y))
     image.putdata(vector)
-    # image.transpose(Image.FLIP_LEFT_RIGHT)
-    # image.transpose(Image.FLIP_TOP_BOTTOM)
 
     return image.save(filename)
 
@@ -153,8 +151,8 @@ def _watermark2bin(wmname):
     vector = []
 
     for z in range(x * y):
-        i = next(indexes)
-        vector.append(vm.getpixel(i))
+        i, j = next(indexes)
+        vector.append(vm.getpixel((j, i)))
 
     vector = _insert_tags(vector, _TAG)
 
