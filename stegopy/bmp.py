@@ -1,11 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 
-"""Methods for working with BMP images."""
+"""
+Last significant bit method for BMP.
+
+It's an implementation of last significant bit steganographic method
+that can only work with BMP images.
+
+"""
 
 from itertools import product
 from PIL import Image
 import os
+
+__author__ = "Nikita Sapunov <kiton1994@gmail.com>"
+
 
 _TAG = "gh$_ik3#"
 
@@ -17,6 +26,12 @@ def insert_watermark(imagename, wmname, newimagename):
     :param imagename: image for watermarking
     :param wmname: path to the watermark image
     :param newimagename: path to the new image generated
+
+    :return: tuple (MSE, SNR)
+             MSE - Mean Square Error
+             SNR - Signal to Noise Ratio
+
+             If error returns tuple ("Error", ErrorMsg)
     """
     if not os.path.exists(imagename):
         return ("Error", "File {0} not found".format(imagename))
@@ -132,6 +147,12 @@ def watermark_len(wmname):
     x, y = wm.size
 
     return x * y * 8
+
+
+def set_tag(newtag):
+    """Set your own tag."""
+    global _TAG
+    _TAG = newtag
 
 
 def _create_grayscale(vector, filename):
