@@ -12,6 +12,7 @@ that can only work with BMP images.
 from itertools import product
 from PIL import Image
 import os
+from math import log10
 
 __author__ = "Nikita Sapunov <kiton1994@gmail.com>"
 
@@ -67,9 +68,11 @@ def insert_watermark(imagename, wmname, newimagename):
             if "0" == lbit:
                 blue += 1
 
-        mse += (int(lbit) - int(bin(blue)[-1]))**2
+        # metrics here
+        _mse = (int(lbit) - int(bin(blue)[-1])) ** 2
+        mse += _mse
         try:
-            snr += int(lbit) ** 2 / (int(lbit) - int(bin(blue)[-1])) ** 2
+            snr += int(lbit) ** 2 / _mse
         except ZeroDivisionError:
             snr += int(lbit) ** 2
 
@@ -77,7 +80,7 @@ def insert_watermark(imagename, wmname, newimagename):
 
     image.save(newimagename)
 
-    return (round(mse / availible_size, 4), round(snr, 4))
+    return (round(mse / availible_size, 4), round(10 * log10(snr), 4))
 
 
 def extract_watermark(imagename, wmname):
